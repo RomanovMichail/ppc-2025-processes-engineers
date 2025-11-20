@@ -18,7 +18,7 @@ class RomanovMClosestElemVecRunPerfTestProcesses : public ppc::util::BaseRunPerf
       input_data_[i] = (static_cast<int>(i) * 1234567 + 7) % 100000;
     }
   }
-
+//test 2
   bool CheckTestOutputData(OutType &output_data) final {
     auto [first_idx, second_idx] = output_data;
     return first_idx >= 0 && second_idx == first_idx + 1 && static_cast<size_t>(second_idx) < input_data_.size();
