@@ -6,7 +6,7 @@
 
 #include "task/include/task.hpp"
 
-namespace romanov_m_closest_elem_vec{
+namespace romanov_m_closest_elem_vec {
 
 using InType = std::vector<int>;
 using OutType = std::tuple<int, int>;
