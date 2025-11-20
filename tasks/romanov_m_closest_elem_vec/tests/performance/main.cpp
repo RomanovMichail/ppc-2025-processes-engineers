@@ -8,15 +8,20 @@
 namespace romanov_m_closest_elem_vec {
 
 class RomanovMClosestElemVecRunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const int kCount_ = 100;
-  InType input_data_{};
+  InType input_data_;
 
   void SetUp() override {
-    input_data_ = kCount_;
+    const size_t vector_size = 20000000;
+    input_data_.resize(vector_size);
+
+    for (size_t i = 0; i < vector_size; ++i) {
+      input_data_[i] = (static_cast<int>(i) * 1234567 + 7) % 100000;
+    }
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return input_data_ == output_data;
+    auto [first_idx, second_idx] = output_data;
+    return first_idx >= 0 && second_idx == first_idx + 1 && static_cast<size_t>(second_idx) < input_data_.size();
   }
 
   InType GetTestInputData() final {
@@ -28,8 +33,8 @@ TEST_P(RomanovMClosestElemVecRunPerfTestProcesses, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, RomanovMClosestElemVecMPI, RomanovMClosestElemVecSEQ>(PPC_SETTINGS_example_processes);
+const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, RomanovMClosestElemVecMPI, RomanovMClosestElemVecSEQ>(
+    PPC_SETTINGS_example_processes);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
@@ -37,4 +42,4 @@ const auto kPerfTestName = RomanovMClosestElemVecRunPerfTestProcesses::CustomPer
 
 INSTANTIATE_TEST_SUITE_P(RunModeTests, RomanovMClosestElemVecRunPerfTestProcesses, kGtestValues, kPerfTestName);
 
-}  // namespace nesterov_a_test_task_processes
+}  // namespace romanov_m_closest_elem_vec

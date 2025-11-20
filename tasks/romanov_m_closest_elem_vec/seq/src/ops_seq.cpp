@@ -1,60 +1,55 @@
-#include "example_processes/seq/include/ops_seq.hpp"
+#include "romanov_m_closest_elem_vec/seq/include/ops_seq.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <numeric>
+#include <stdexcept>
+#include <tuple>
+#include <utility>
 #include <vector>
 
-#include "example_processes/common/include/common.hpp"
+#include "romanov_m_closest_elem_vec/common/include/common.hpp"
 #include "util/include/util.hpp"
 
-namespace nesterov_a_test_task_processes {
+namespace romanov_m_closest_elem_vec {
 
-NesterovATestTaskSEQ::NesterovATestTaskSEQ(const InType &in) {
+RomanovMClosestElemVecSEQ::RomanovMClosestElemVecSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
-  GetOutput() = 0;
+  GetOutput() = std::make_tuple(-1, -1);
+  ;
 }
 
-bool NesterovATestTaskSEQ::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+bool RomanovMClosestElemVecSEQ::ValidationImpl() {
+  return GetInput().size() >= 2;
 }
 
-bool NesterovATestTaskSEQ::PreProcessingImpl() {
-  GetOutput() = 2 * GetInput();
-  return GetOutput() > 0;
+bool RomanovMClosestElemVecSEQ::PreProcessingImpl() {
+  return true;
 }
 
-bool NesterovATestTaskSEQ::RunImpl() {
-  if (GetInput() == 0) {
-    return false;
-  }
+bool RomanovMClosestElemVecSEQ::RunImpl() {
+  const auto &v = GetInput();
+  const size_t size = v.size();
 
-  for (InType i = 0; i < GetInput(); i++) {
-    for (InType j = 0; j < GetInput(); j++) {
-      for (InType k = 0; k < GetInput(); k++) {
-        std::vector<InType> tmp(i + j + k, 1);
-        GetOutput() += std::accumulate(tmp.begin(), tmp.end(), 0);
-        GetOutput() -= i + j + k;
-      }
+  int min_diff = std::abs(v[1] - v[0]);
+  int min_idx = 0;
+
+  for (size_t i = 1; i < size - 1; ++i) {
+    int current_diff = std::abs(v[i + 1] - v[i]);
+
+    if (current_diff < min_diff) {
+      min_diff = current_diff;
+      min_idx = static_cast<int>(i);
     }
   }
 
-  const int num_threads = ppc::util::GetNumThreads();
-  GetOutput() *= num_threads;
-
-  int counter = 0;
-  for (int i = 0; i < num_threads; i++) {
-    counter++;
-  }
-
-  if (counter != 0) {
-    GetOutput() /= counter;
-  }
-  return GetOutput() > 0;
+  GetOutput() = std::make_tuple(min_idx, min_idx + 1);
+  return true;
 }
 
-bool NesterovATestTaskSEQ::PostProcessingImpl() {
-  GetOutput() -= GetInput();
-  return GetOutput() > 0;
+bool RomanovMClosestElemVecSEQ::PostProcessingImpl() {
+  return true;
 }
 
-}  // namespace nesterov_a_test_task_processes
+}  // namespace romanov_m_closest_elem_vec
