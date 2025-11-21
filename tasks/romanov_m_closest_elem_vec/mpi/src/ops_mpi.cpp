@@ -11,11 +11,6 @@
 
 namespace romanov_m_closest_elem_vec {
 
-struct Result {
-  int diff;
-  int idx;
-};
-
 void calculate_distribution(int total_size, int comm_size, std::vector<int> &send_counts, std::vector<int> &displs) {
   int base_count = total_size / comm_size;
   int remainder = total_size % comm_size;
