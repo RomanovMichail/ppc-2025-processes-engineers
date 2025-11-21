@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "romanov_m_closest_elem_vec/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -10,9 +12,12 @@ struct Result {
   int idx;
 };
 
-void calculate_distribution(int total_size, int comm_size, std::vector<int> &send_counts, std::vector<int> &displs);
+void CalculateDistribution(int total_size, int comm_size, std::vector<int> &send_counts, std::vector<int> &displs);
 
-void local_find_min_diff(const std::vector<int> &local_data, int local_sz, int global_offset, Result &local_res);
+void LocalFindMinDiff(const std::vector<int> &local_data, int local_sz, int global_offset, Result &local_res);
+
+void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offset, const std::vector<int> &local_data,
+                          Result &local_res);
 
 class RomanovMClosestElemVecMPI : public BaseTask {
  public:

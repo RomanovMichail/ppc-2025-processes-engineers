@@ -3,6 +3,7 @@
 #include <mpi.h>
 
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <tuple>
 #include <vector>
@@ -11,7 +12,37 @@
 
 namespace romanov_m_closest_elem_vec {
 
-void calculate_distribution(int total_size, int comm_size, std::vector<int> &send_counts, std::vector<int> &displs) {
+void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offset, const std::vector<int> &local_data,
+                          Result &local_res) {
+  if (comm_size > 1) {
+    int send_val = 0;
+    int prev_last_val = 0;
+    const int dest = (rank == comm_size - 1) ? MPI_PROC_NULL : rank + 1;
+    const int source = (rank == 0) ? MPI_PROC_NULL : rank - 1;
+
+    if (local_sz > 0 && rank != comm_size - 1) {
+      send_val = local_data.back();
+    }
+
+    MPI_Sendrecv(&send_val, 1, MPI_INT, dest, 0, &prev_last_val, 1, MPI_INT, source, 0, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+
+    if (rank > 0 && local_sz > 0) {
+      const int boundary_idx = global_offset - 1;
+      const int boundary_diff = std::abs(local_data[0] - prev_last_val);
+      if (boundary_diff < local_res.diff) {
+        local_res.diff = boundary_diff;
+        local_res.idx = boundary_idx;
+      } else if (boundary_diff == local_res.diff) {
+        if (local_res.idx == -1 || boundary_idx < local_res.idx) {
+          local_res.idx = boundary_idx;
+        }
+      }
+    }
+  }
+}
+
+void CalculateDistribution(int total_size, int comm_size, std::vector<int> &send_counts, std::vector<int> &displs) {
   int base_count = total_size / comm_size;
   int remainder = total_size % comm_size;
   int current_displ = 0;
@@ -26,7 +57,7 @@ void calculate_distribution(int total_size, int comm_size, std::vector<int> &sen
   }
 }
 
-void local_find_min_diff(const std::vector<int> &local_data, int local_sz, int global_offset, Result &local_res) {
+void LocalFindMinDiff(const std::vector<int> &local_data, int local_sz, int global_offset, Result &local_res) {
   if (local_sz >= 2) {
     for (int i = 0; i < local_sz - 1; ++i) {
       const int current_idx = global_offset + i;
@@ -68,7 +99,8 @@ bool RomanovMClosestElemVecMPI::PreProcessingImpl() {
 }
 
 bool RomanovMClosestElemVecMPI::RunImpl() {
-  int rank, comm_size;
+  int rank = 0;
+  int comm_size = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
@@ -81,7 +113,7 @@ bool RomanovMClosestElemVecMPI::RunImpl() {
   std::vector<int> send_counts;
   std::vector<int> displs;
 
-  calculate_distribution(static_cast<int>(global_size), comm_size, send_counts, displs);
+  CalculateDistribution(static_cast<int>(global_size), comm_size, send_counts, displs);
 
   const int global_offset = displs[rank];
   const int local_sz = send_counts[rank];
@@ -91,40 +123,15 @@ bool RomanovMClosestElemVecMPI::RunImpl() {
   MPI_Scatterv(rank == 0 ? GetInput().data() : nullptr, send_counts.data(), displs.data(), MPI_INT, local_data.data(),
                local_sz, MPI_INT, 0, MPI_COMM_WORLD);
 
-  Result local_res;
+  Result local_res = {0, 0};
   local_res.diff = std::numeric_limits<int>::max();
   local_res.idx = -1;
 
-  local_find_min_diff(local_data, local_sz, global_offset, local_res);
+  LocalFindMinDiff(local_data, local_sz, global_offset, local_res);
 
-  if (comm_size > 1) {
-    int send_val = 0;
-    int prev_last_val = 0;
-    const int dest = (rank == comm_size - 1) ? MPI_PROC_NULL : rank + 1;
-    const int source = (rank == 0) ? MPI_PROC_NULL : rank - 1;
+  PerformBoundaryCheck(rank, comm_size, local_sz, global_offset, local_data, local_res);
 
-    if (local_sz > 0 && rank != comm_size - 1) {
-      send_val = local_data.back();
-    }
-
-    MPI_Sendrecv(&send_val, 1, MPI_INT, dest, 0, &prev_last_val, 1, MPI_INT, source, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
-
-    if (rank > 0 && local_sz > 0) {
-      const int boundary_idx = global_offset - 1;
-      const int boundary_diff = std::abs(local_data[0] - prev_last_val);
-      if (boundary_diff < local_res.diff) {
-        local_res.diff = boundary_diff;
-        local_res.idx = boundary_idx;
-      } else if (boundary_diff == local_res.diff) {
-        if (local_res.idx == -1 || boundary_idx < local_res.idx) {
-          local_res.idx = boundary_idx;
-        }
-      }
-    }
-  }
-
-  Result global_res{};
+  Result global_res = {0, 0};
   MPI_Allreduce(&local_res, &global_res, 1, MPI_2INT, MPI_MINLOC, MPI_COMM_WORLD);
   GetOutput() = std::make_tuple(global_res.idx, global_res.idx + 1);
   return true;
