@@ -12,8 +12,8 @@
 
 namespace romanov_m_closest_elem_vec {
 
-void perform_boundary_check(int rank, int comm_size, int local_sz, int global_offset,
-                            const std::vector<int> &local_data, Result &local_res) {
+void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offset, const std::vector<int> &local_data,
+                          Result &local_res) {
   if (comm_size > 1) {
     int send_val = 0;
     int prev_last_val = 0;
