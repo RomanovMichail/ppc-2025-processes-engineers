@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 
 #include "romanov_m_closest_elem_vec/common/include/common.hpp"
 #include "romanov_m_closest_elem_vec/mpi/include/ops_mpi.hpp"
@@ -17,7 +18,7 @@ class RomanovMClosestElemVecRunPerfTestProcesses : public ppc::util::BaseRunPerf
     input_data_.resize(vector_size);
 
     for (size_t i = 0; i < vector_size; ++i) {
-      input_data_[i] = (static_cast<int64_t>(i) * 1234567 + 7) % 100000;
+      input_data_[i] = static_cast<int>((static_cast<int64_t>(i) * 1234567 + 7) % 100000);
     }
   }
   // test 2

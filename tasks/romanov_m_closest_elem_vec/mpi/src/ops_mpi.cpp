@@ -12,8 +12,8 @@
 
 namespace romanov_m_closest_elem_vec {
 
-void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offset, const std::vector<int> &local_data,
-                          Result &local_res) {
+void perform_boundary_check(int rank, int comm_size, int local_sz, int global_offset,
+                            const std::vector<int> &local_data, Result &local_res) {
   if (comm_size > 1) {
     int send_val = 0;
     int prev_last_val = 0;
@@ -30,14 +30,7 @@ void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offs
     if (rank > 0 && local_sz > 0) {
       const int boundary_idx = global_offset - 1;
       const int boundary_diff = std::abs(local_data[0] - prev_last_val);
-      if (boundary_diff < local_res.diff) {
-        local_res.diff = boundary_diff;
-        local_res.idx = boundary_idx;
-      } else if (boundary_diff == local_res.diff) {
-        if (local_res.idx == -1 || boundary_idx < local_res.idx) {
-          local_res.idx = boundary_idx;
-        }
-      }
+      UpdateResult(local_res, boundary_diff, boundary_idx);
     }
   }
 }
@@ -57,20 +50,24 @@ void CalculateDistribution(int total_size, int comm_size, std::vector<int> &send
   }
 }
 
+void UpdateResult(Result &current_res, int new_diff, int new_idx) {
+  if (new_diff < current_res.diff) {
+    current_res.diff = new_diff;
+    current_res.idx = new_idx;
+  } else if (new_diff == current_res.diff) {
+    if (current_res.idx == -1 || new_idx < current_res.idx) {
+      current_res.idx = new_idx;
+    }
+  }
+}
+
 void LocalFindMinDiff(const std::vector<int> &local_data, int local_sz, int global_offset, Result &local_res) {
   if (local_sz >= 2) {
     for (int i = 0; i < local_sz - 1; ++i) {
       const int current_idx = global_offset + i;
       const int diff = std::abs(local_data[i + 1] - local_data[i]);
 
-      if (diff < local_res.diff) {
-        local_res.diff = diff;
-        local_res.idx = current_idx;
-      } else if (diff == local_res.diff) {
-        if (local_res.idx == -1 || current_idx < local_res.idx) {
-          local_res.idx = current_idx;
-        }
-      }
+      UpdateResult(local_res, diff, current_idx);
     }
   }
 }

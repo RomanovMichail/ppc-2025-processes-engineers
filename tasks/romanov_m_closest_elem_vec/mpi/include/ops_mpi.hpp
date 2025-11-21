@@ -8,6 +8,10 @@
 namespace romanov_m_closest_elem_vec {
 
 struct Result {
+  Result(int diff, int idx)
+      : diff(diff), idx(idx) {
+
+        };
   int diff;
   int idx;
 };
@@ -18,6 +22,8 @@ void LocalFindMinDiff(const std::vector<int> &local_data, int local_sz, int glob
 
 void PerformBoundaryCheck(int rank, int comm_size, int local_sz, int global_offset, const std::vector<int> &local_data,
                           Result &local_res);
+
+void UpdateResult(Result &current_res, int new_diff, int new_idx);
 
 class RomanovMClosestElemVecMPI : public BaseTask {
  public:
