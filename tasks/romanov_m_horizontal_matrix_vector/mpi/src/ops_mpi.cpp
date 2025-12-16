@@ -22,7 +22,7 @@ bool RomanovMHorizontalMatrixVectorMPI::ValidationImpl() {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  int check = 1; 
+  int check = 1;
 
   if (rank == 0) {
     const auto &input = GetInput();
@@ -60,7 +60,7 @@ bool RomanovMHorizontalMatrixVectorMPI::PreProcessingImpl() {
   if (rows > 0) {
     GetOutput().resize(static_cast<size_t>(rows));
   }
-  
+
   return true;
 }
 
@@ -106,7 +106,7 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
     vec.resize(static_cast<size_t>(cols));
   }
   if (cols > 0) {
-      MPI_Bcast(vec.data(), cols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(vec.data(), cols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   }
 
   std::vector<int> rows_counts;
@@ -122,10 +122,10 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
 
   int my_rows = rows_counts[rank];
   int my_data_size = my_rows * cols;
-  
+
   std::vector<double> local_matrix;
   if (my_data_size > 0) {
-      local_matrix.resize(static_cast<size_t>(my_data_size));
+    local_matrix.resize(static_cast<size_t>(my_data_size));
   }
 
   const double *sendbuf = nullptr;
@@ -133,22 +133,14 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
     sendbuf = std::get<0>(GetInput()).data();
   }
 
-  MPI_Scatterv(
-      sendbuf, 
-      send_counts.data(), 
-      send_displs.data(), 
-      MPI_DOUBLE, 
-      (my_data_size > 0) ? local_matrix.data() : nullptr, 
-      my_data_size,
-      MPI_DOUBLE, 
-      0, 
-      MPI_COMM_WORLD);
+  MPI_Scatterv(sendbuf, send_counts.data(), send_displs.data(), MPI_DOUBLE,
+               (my_data_size > 0) ? local_matrix.data() : nullptr, my_data_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   std::vector<double> local_res;
   if (my_rows > 0) {
-      local_res.resize(static_cast<size_t>(my_rows));
+    local_res.resize(static_cast<size_t>(my_rows));
   }
-  
+
   for (int i = 0; i < my_rows; ++i) {
     double sum = 0.0;
     for (int j = 0; j < cols; ++j) {
@@ -157,15 +149,8 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
     local_res[i] = sum;
   }
 
-  MPI_Allgatherv(
-      (my_rows > 0) ? local_res.data() : nullptr, 
-      my_rows, 
-      MPI_DOUBLE, 
-      GetOutput().data(), 
-      rows_counts.data(), 
-      rows_displs.data(),
-      MPI_DOUBLE, 
-      MPI_COMM_WORLD);
+  MPI_Allgatherv((my_rows > 0) ? local_res.data() : nullptr, my_rows, MPI_DOUBLE, GetOutput().data(),
+                 rows_counts.data(), rows_displs.data(), MPI_DOUBLE, MPI_COMM_WORLD);
 
   return true;
 }
