@@ -11,6 +11,7 @@
 #include "romanov_m_horizontal_matrix_vector/mpi/include/ops_mpi.hpp"
 #include "romanov_m_horizontal_matrix_vector/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
+#include "util/include/util.hpp"
 
 namespace romanov_m_horizontal_matrix_vector {
 
