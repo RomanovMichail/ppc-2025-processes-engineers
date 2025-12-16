@@ -3,15 +3,14 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include "romanov_m_horizontal_matrix_vector/common/include/common.hpp"
 #include "romanov_m_horizontal_matrix_vector/mpi/include/ops_mpi.hpp"
 #include "romanov_m_horizontal_matrix_vector/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 
 namespace romanov_m_horizontal_matrix_vector {
 
@@ -23,25 +22,28 @@ class RomanovMHorizontalMatrixVectorRunFuncTests : public ppc::util::BaseRunFunc
 
  protected:
   void SetUp() override {
-    TestType params = std::get<static_cast<size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
-    int rows = std::get<0>(params);
-    int cols = std::get<1>(params);
+    const TestType params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
 
-    std::vector<double> matrix(rows * cols);
-    std::vector<double> vec(cols);
-    OutType expected(rows);
+    const int rows = std::get<0>(params);
+    const int cols = std::get<1>(params);
+
+    std::vector<double> matrix(static_cast<std::size_t>(rows) * static_cast<std::size_t>(cols));
+    std::vector<double> vec(static_cast<std::size_t>(cols));
+    OutType expected(static_cast<std::size_t>(rows));
 
     for (int j = 0; j < cols; ++j) {
-      vec[j] = 1.0;
+      vec[static_cast<std::size_t>(j)] = 1.0;
     }
 
     for (int i = 0; i < rows; ++i) {
       double sum = 0.0;
       for (int j = 0; j < cols; ++j) {
-        matrix[i * cols + j] = static_cast<double>(i + j);
-        sum += (i + j) * 1.0;
+        const std::size_t idx =
+            static_cast<std::size_t>(i) * static_cast<std::size_t>(cols) + static_cast<std::size_t>(j);
+        matrix[idx] = static_cast<double>(i + j);
+        sum += static_cast<double>(i + j);
       }
-      expected[i] = sum;
+      expected[static_cast<std::size_t>(i)] = sum;
     }
 
     input_data_ = std::make_tuple(matrix, rows, cols, vec);
@@ -52,7 +54,7 @@ class RomanovMHorizontalMatrixVectorRunFuncTests : public ppc::util::BaseRunFunc
     if (output_data.size() != expected_result_.size()) {
       return false;
     }
-    for (size_t i = 0; i < output_data.size(); ++i) {
+    for (std::size_t i = 0; i < output_data.size(); ++i) {
       if (std::abs(output_data[i] - expected_result_[i]) > 1e-5) {
         return false;
       }

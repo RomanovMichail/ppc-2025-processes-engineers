@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstddef>
+#include <tuple>
+#include <vector>
 
 #include "romanov_m_horizontal_matrix_vector/common/include/common.hpp"
 #include "romanov_m_horizontal_matrix_vector/mpi/include/ops_mpi.hpp"
@@ -10,39 +13,43 @@
 namespace romanov_m_horizontal_matrix_vector {
 
 class RomanovMHorizontalMatrixVectorRunPerfTests : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const int kRows = 2000;
-  const int kCols = 2000;
+ private:
+  const int kRows_ = 2000;
+  const int kCols_ = 2000;
+
   InType input_data_;
   OutType expected_data_;
 
   void SetUp() override {
-    std::vector<double> mat(kRows * kCols);
-    std::vector<double> vec(kCols);
+    std::vector<double> mat(static_cast<std::size_t>(kRows_) * static_cast<std::size_t>(kCols_));
+    std::vector<double> vec(static_cast<std::size_t>(kCols_));
 
-    expected_data_.resize(kRows);
+    expected_data_.resize(static_cast<std::size_t>(kRows_));
 
-    for (int j = 0; j < kCols; ++j) {
-      vec[j] = 0.5;
+    for (int j = 0; j < kCols_; ++j) {
+      vec[static_cast<std::size_t>(j)] = 0.5;
     }
 
-    for (int i = 0; i < kRows; ++i) {
-      double row_sum = 0.0;
-      for (int j = 0; j < kCols; ++j) {
-        double val = (i % 10) + (j % 10);
-        mat[i * kCols + j] = val;
-        row_sum += val * 0.5;
+    for (int i = 0; i < kRows_; ++i) {
+      double sum = 0.0;
+      for (int j = 0; j < kCols_; ++j) {
+        const double val = static_cast<double>((i % 10) + (j % 10));
+        const std::size_t idx =
+            static_cast<std::size_t>(i) * static_cast<std::size_t>(kCols_) + static_cast<std::size_t>(j);
+        mat[idx] = val;
+        sum += val * 0.5;
       }
-      expected_data_[i] = row_sum;
+      expected_data_[static_cast<std::size_t>(i)] = sum;
     }
 
-    input_data_ = std::make_tuple(mat, kRows, kCols, vec);
+    input_data_ = std::make_tuple(mat, kRows_, kCols_, vec);
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
     if (output_data.size() != expected_data_.size()) {
       return false;
     }
-    if (std::abs(output_data[0] - expected_data_[0]) > 1e-4) {
+    if (std::abs(output_data.front() - expected_data_.front()) > 1e-4) {
       return false;
     }
     if (std::abs(output_data.back() - expected_data_.back()) > 1e-4) {

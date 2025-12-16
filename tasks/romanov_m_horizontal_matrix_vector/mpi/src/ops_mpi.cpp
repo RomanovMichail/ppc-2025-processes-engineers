@@ -2,8 +2,11 @@
 
 #include <mpi.h>
 
-#include <algorithm>
+#include <cstddef>
+#include <tuple>
 #include <vector>
+
+#include "romanov_m_horizontal_matrix_vector/common/include/common.hpp"
 
 namespace romanov_m_horizontal_matrix_vector {
 

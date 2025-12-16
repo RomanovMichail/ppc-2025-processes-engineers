@@ -1,6 +1,7 @@
 #include "romanov_m_horizontal_matrix_vector/seq/include/ops_seq.hpp"
 
 #include <cstddef>
+#include <tuple>
 #include <vector>
 
 namespace romanov_m_horizontal_matrix_vector {
@@ -20,10 +21,13 @@ bool RomanovMHorizontalMatrixVectorSEQ::ValidationImpl() {
   if (r <= 0 || c <= 0) {
     return false;
   }
-  if (mat.size() != static_cast<size_t>(r * c)) {
+
+  const std::size_t expected_size = static_cast<std::size_t>(r) * static_cast<std::size_t>(c);
+
+  if (mat.size() != expected_size) {
     return false;
   }
-  if (v.size() != static_cast<size_t>(c)) {
+  if (v.size() != static_cast<std::size_t>(c)) {
     return false;
   }
 
@@ -31,7 +35,7 @@ bool RomanovMHorizontalMatrixVectorSEQ::ValidationImpl() {
 }
 
 bool RomanovMHorizontalMatrixVectorSEQ::PreProcessingImpl() {
-  GetOutput().resize(std::get<1>(GetInput()));
+  GetOutput().resize(static_cast<std::size_t>(std::get<1>(GetInput())));
   return true;
 }
 
@@ -46,9 +50,11 @@ bool RomanovMHorizontalMatrixVectorSEQ::RunImpl() {
   for (int i = 0; i < rows; ++i) {
     double temp = 0.0;
     for (int j = 0; j < cols; ++j) {
-      temp += matrix[i * cols + j] * vec[j];
+      const std::size_t idx =
+          static_cast<std::size_t>(i) * static_cast<std::size_t>(cols) + static_cast<std::size_t>(j);
+      temp += matrix[idx] * vec[static_cast<std::size_t>(j)];
     }
-    res[i] = temp;
+    res[static_cast<std::size_t>(i)] = temp;
   }
 
   return true;

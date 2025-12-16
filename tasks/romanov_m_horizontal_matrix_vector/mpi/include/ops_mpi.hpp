@@ -20,7 +20,7 @@ class RomanovMHorizontalMatrixVectorMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  void CalculateDistribution(int rows, int proc_num, std::vector<int> &counts, std::vector<int> &displs);
+  static void CalculateDistribution(int rows, int proc_num, std::vector<int> &counts, std::vector<int> &displs);
 };
 
 }  // namespace romanov_m_horizontal_matrix_vector
