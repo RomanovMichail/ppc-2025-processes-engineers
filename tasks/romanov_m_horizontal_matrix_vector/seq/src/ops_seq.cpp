@@ -4,6 +4,8 @@
 #include <tuple>
 #include <vector>
 
+#include "romanov_m_horizontal_matrix_vector/common/include/common.hpp"
+
 namespace romanov_m_horizontal_matrix_vector {
 
 RomanovMHorizontalMatrixVectorSEQ::RomanovMHorizontalMatrixVectorSEQ(const InType &in) {
@@ -51,7 +53,7 @@ bool RomanovMHorizontalMatrixVectorSEQ::RunImpl() {
     double temp = 0.0;
     for (int j = 0; j < cols; ++j) {
       const std::size_t idx =
-          static_cast<std::size_t>(i) * static_cast<std::size_t>(cols) + static_cast<std::size_t>(j);
+          (static_cast<std::size_t>(i) * static_cast<std::size_t>(cols)) + static_cast<std::size_t>(j);
       temp += matrix[idx] * vec[static_cast<std::size_t>(j)];
     }
     res[static_cast<std::size_t>(i)] = temp;

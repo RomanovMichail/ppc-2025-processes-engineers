@@ -33,9 +33,9 @@ class RomanovMHorizontalMatrixVectorRunPerfTests : public ppc::util::BaseRunPerf
     for (int i = 0; i < kRows_; ++i) {
       double sum = 0.0;
       for (int j = 0; j < kCols_; ++j) {
-        const double val = static_cast<double>((i % 10) + (j % 10));
+        const auto val = static_cast<double>((i % 10) + (j % 10));
         const std::size_t idx =
-            static_cast<std::size_t>(i) * static_cast<std::size_t>(kCols_) + static_cast<std::size_t>(j);
+            (static_cast<std::size_t>(i) * static_cast<std::size_t>(kCols_)) + static_cast<std::size_t>(j);
         mat[idx] = val;
         sum += val * 0.5;
       }

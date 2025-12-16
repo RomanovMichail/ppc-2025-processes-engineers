@@ -77,12 +77,12 @@ void RomanovMHorizontalMatrixVectorMPI::CalculateDistribution(int rows, int proc
 
   int current_disp = 0;
   for (int i = 0; i < proc_num; ++i) {
-    counts[i] = rows_per_proc;
+    counts[static_cast<size_t>(i)] = rows_per_proc;
     if (i < remainder) {
-      counts[i]++;
+      counts[static_cast<size_t>(i)]++;
     }
-    displs[i] = current_disp;
-    current_disp += counts[i];
+    displs[static_cast<size_t>(i)] = current_disp;
+    current_disp += counts[static_cast<size_t>(i)];
   }
 }
 
@@ -119,11 +119,11 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
   std::vector<int> send_counts(static_cast<size_t>(size));
   std::vector<int> send_displs(static_cast<size_t>(size));
   for (int i = 0; i < size; ++i) {
-    send_counts[i] = rows_counts[i] * cols;
-    send_displs[i] = rows_displs[i] * cols;
+    send_counts[static_cast<size_t>(i)] = rows_counts[static_cast<size_t>(i)] * cols;
+    send_displs[static_cast<size_t>(i)] = rows_displs[static_cast<size_t>(i)] * cols;
   }
 
-  int my_rows = rows_counts[rank];
+  int my_rows = rows_counts[static_cast<size_t>(rank)];
   int my_data_size = my_rows * cols;
 
   std::vector<double> local_matrix;
@@ -147,9 +147,11 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
   for (int i = 0; i < my_rows; ++i) {
     double sum = 0.0;
     for (int j = 0; j < cols; ++j) {
-      sum += local_matrix[static_cast<size_t>(i * cols + j)] * vec[static_cast<size_t>(j)];
+      const std::size_t idx =
+          (static_cast<std::size_t>(i) * static_cast<std::size_t>(cols)) + static_cast<std::size_t>(j);
+      sum += local_matrix[idx] * vec[static_cast<std::size_t>(j)];
     }
-    local_res[i] = sum;
+    local_res[static_cast<size_t>(i)] = sum;
   }
 
   MPI_Allgatherv((my_rows > 0) ? local_res.data() : nullptr, my_rows, MPI_DOUBLE, GetOutput().data(),

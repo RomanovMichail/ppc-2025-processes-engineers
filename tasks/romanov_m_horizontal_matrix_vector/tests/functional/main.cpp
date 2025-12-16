@@ -39,7 +39,7 @@ class RomanovMHorizontalMatrixVectorRunFuncTests : public ppc::util::BaseRunFunc
       double sum = 0.0;
       for (int j = 0; j < cols; ++j) {
         const std::size_t idx =
-            static_cast<std::size_t>(i) * static_cast<std::size_t>(cols) + static_cast<std::size_t>(j);
+            (static_cast<std::size_t>(i) * static_cast<std::size_t>(cols)) + static_cast<std::size_t>(j);
         matrix[idx] = static_cast<double>(i + j);
         sum += static_cast<double>(i + j);
       }
