@@ -2,6 +2,7 @@
 
 #include <mpi.h>
 
+#include <algorithm>
 #include <vector>
 
 namespace romanov_m_horizontal_matrix_vector {
@@ -21,6 +22,8 @@ bool RomanovMHorizontalMatrixVectorMPI::ValidationImpl() {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+  int check = 1; 
+
   if (rank == 0) {
     const auto &input = GetInput();
     const auto &matrix = std::get<0>(input);
@@ -29,15 +32,19 @@ bool RomanovMHorizontalMatrixVectorMPI::ValidationImpl() {
     const auto &vec = std::get<3>(input);
 
     if (rows <= 0 || cols <= 0) {
-      return false;
+      check = 0;
+    } else {
+      bool mat_ok = (matrix.size() == static_cast<size_t>(rows) * static_cast<size_t>(cols));
+      bool vec_ok = (vec.size() == static_cast<size_t>(cols));
+      if (!mat_ok || !vec_ok) {
+        check = 0;
+      }
     }
-
-    bool mat_ok = (matrix.size() == static_cast<size_t>(rows) * static_cast<size_t>(cols));
-    bool vec_ok = (vec.size() == static_cast<size_t>(cols));
-
-    return mat_ok && vec_ok;
   }
-  return true;
+
+  MPI_Bcast(&check, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  return check == 1;
 }
 
 bool RomanovMHorizontalMatrixVectorMPI::PreProcessingImpl() {
@@ -50,7 +57,10 @@ bool RomanovMHorizontalMatrixVectorMPI::PreProcessingImpl() {
   }
   MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  GetOutput().resize(rows);
+  if (rows > 0) {
+    GetOutput().resize(static_cast<size_t>(rows));
+  }
+  
   return true;
 }
 
@@ -59,8 +69,8 @@ void RomanovMHorizontalMatrixVectorMPI::CalculateDistribution(int rows, int proc
   int rows_per_proc = rows / proc_num;
   int remainder = rows % proc_num;
 
-  counts.resize(proc_num);
-  displs.resize(proc_num);
+  counts.resize(static_cast<size_t>(proc_num));
+  displs.resize(static_cast<size_t>(proc_num));
 
   int current_disp = 0;
   for (int i = 0; i < proc_num; ++i) {
@@ -93,43 +103,69 @@ bool RomanovMHorizontalMatrixVectorMPI::RunImpl() {
   MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   if (rank != 0) {
-    vec.resize(cols);
+    vec.resize(static_cast<size_t>(cols));
   }
-  MPI_Bcast(vec.data(), cols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  if (cols > 0) {
+      MPI_Bcast(vec.data(), cols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  }
 
   std::vector<int> rows_counts;
   std::vector<int> rows_displs;
   CalculateDistribution(rows, size, rows_counts, rows_displs);
 
-  std::vector<int> send_counts(size);
-  std::vector<int> send_displs(size);
+  std::vector<int> send_counts(static_cast<size_t>(size));
+  std::vector<int> send_displs(static_cast<size_t>(size));
   for (int i = 0; i < size; ++i) {
     send_counts[i] = rows_counts[i] * cols;
     send_displs[i] = rows_displs[i] * cols;
   }
 
   int my_rows = rows_counts[rank];
-  std::vector<double> local_matrix(my_rows * cols);
+  int my_data_size = my_rows * cols;
+  
+  std::vector<double> local_matrix;
+  if (my_data_size > 0) {
+      local_matrix.resize(static_cast<size_t>(my_data_size));
+  }
 
   const double *sendbuf = nullptr;
   if (rank == 0) {
     sendbuf = std::get<0>(GetInput()).data();
   }
 
-  MPI_Scatterv(sendbuf, send_counts.data(), send_displs.data(), MPI_DOUBLE, local_matrix.data(), my_rows * cols,
-               MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Scatterv(
+      sendbuf, 
+      send_counts.data(), 
+      send_displs.data(), 
+      MPI_DOUBLE, 
+      (my_data_size > 0) ? local_matrix.data() : nullptr, 
+      my_data_size,
+      MPI_DOUBLE, 
+      0, 
+      MPI_COMM_WORLD);
 
-  std::vector<double> local_res(my_rows);
+  std::vector<double> local_res;
+  if (my_rows > 0) {
+      local_res.resize(static_cast<size_t>(my_rows));
+  }
+  
   for (int i = 0; i < my_rows; ++i) {
     double sum = 0.0;
     for (int j = 0; j < cols; ++j) {
-      sum += local_matrix[i * cols + j] * vec[j];
+      sum += local_matrix[static_cast<size_t>(i * cols + j)] * vec[static_cast<size_t>(j)];
     }
     local_res[i] = sum;
   }
 
-  MPI_Allgatherv(local_res.data(), my_rows, MPI_DOUBLE, GetOutput().data(), rows_counts.data(), rows_displs.data(),
-                 MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(
+      (my_rows > 0) ? local_res.data() : nullptr, 
+      my_rows, 
+      MPI_DOUBLE, 
+      GetOutput().data(), 
+      rows_counts.data(), 
+      rows_displs.data(),
+      MPI_DOUBLE, 
+      MPI_COMM_WORLD);
 
   return true;
 }
