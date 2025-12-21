@@ -27,12 +27,13 @@ constexpr bool ArePointsEqual(const Point &p1, const Point &p2) noexcept {
 }
 
 constexpr int64_t CalcCross(const Point &p1, const Point &p2, const Point &p3) noexcept {
-  return static_cast<int64_t>(p2.x - p1.x) * (p3.y - p1.y) - static_cast<int64_t>(p2.y - p1.y) * (p3.x - p1.x);
+  return (static_cast<int64_t>(p2.x - p1.x) * static_cast<int64_t>(p3.y - p1.y)) -
+         (static_cast<int64_t>(p2.y - p1.y) * static_cast<int64_t>(p3.x - p1.x));
 }
 
-constexpr int64_t CalcDistSq(const Point &p1, const Point &p2) noexcept {
-  const int64_t dx = p2.x - p1.x;
-  const int64_t dy = p2.y - p1.y;
+constexpr int CalcDistSq(const Point &p1, const Point &p2) noexcept {
+  const int dx = p2.x - p1.x;
+  const int dy = p2.y - p1.y;
   return (dx * dx) + (dy * dy);
 }
 

@@ -16,11 +16,13 @@ static bool IsValidConvexHull(const std::vector<Point> &points, const std::vecto
   if (hull.empty()) {
     return points.empty();
   }
+
   for (const auto &h : hull) {
     if (std::ranges::find(points, h) == points.end()) {
       return false;
     }
   }
+
   for (std::size_t i = 0; i < hull.size(); ++i) {
     const Point &p1 = hull[i];
     const Point &p2 = hull[(i + 1) % hull.size()];
@@ -41,19 +43,22 @@ class RomanovMProhodJarvisaRunPerfTests : public ppc::util::BaseRunPerfTests<InT
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> dist(-1000, 1000);
+
     i_points_.resize(kSize);
     for (std::size_t i = 0; i < kSize; ++i) {
-      i_points_[i] = Point{dist(gen), dist(gen)};
+      i_points_[i] = Point{.x = dist(gen), .y = dist(gen)};
     }
-    i_points_[0] = {-10000, -10000};
-    i_points_[1] = {10000, -10000};
-    i_points_[2] = {10000, 10000};
-    i_points_[3] = {-10000, 10000};
+
+    i_points_[0] = Point{.x = -10000, .y = -10000};
+    i_points_[1] = Point{.x = 10000, .y = -10000};
+    i_points_[2] = Point{.x = 10000, .y = 10000};
+    i_points_[3] = Point{.x = -10000, .y = 10000};
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
     return IsValidConvexHull(i_points_, output_data);
   }
+
   InType GetTestInputData() final {
     return i_points_;
   }
@@ -68,7 +73,9 @@ TEST_P(RomanovMProhodJarvisaRunPerfTests, RunPerfModes) {
 
 const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, RomanovMProhodJarvisaMPI, RomanovMProhodJarvisaSEQ>(
     PPC_SETTINGS_romanov_m_prohod_jarvisa);
+
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
+
 INSTANTIATE_TEST_SUITE_P(RunModeTests, RomanovMProhodJarvisaRunPerfTests, kGtestValues,
                          RomanovMProhodJarvisaRunPerfTests::CustomPerfTestName);
 

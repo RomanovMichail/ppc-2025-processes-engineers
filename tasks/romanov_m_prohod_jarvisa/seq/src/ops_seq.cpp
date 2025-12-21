@@ -1,7 +1,5 @@
 #include "romanov_m_prohod_jarvisa/seq/include/ops_seq.hpp"
 
-#include <algorithm>
-#include <utility>
 #include <vector>
 
 #include "romanov_m_prohod_jarvisa/common/include/common.hpp"
@@ -23,7 +21,7 @@ bool RomanovMProhodJarvisaSEQ::PreProcessingImpl() {
 }
 
 std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> points) {
-  int n = static_cast<int>(points.size());
+  const int n = static_cast<int>(points.size());
   if (n < 3) {
     return points;
   }
@@ -37,18 +35,22 @@ std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> poin
   }
 
   int p = leftmost;
-  int q;
-  do {
+  int q = 0;
+
+  while (true) {
     hull.push_back(points[p]);
     q = (p + 1) % n;
     for (int i = 0; i < n; ++i) {
-      int cross = CalcCross(points[p], points[i], points[q]);
+      const int64_t cross = CalcCross(points[p], points[i], points[q]);
       if (cross > 0 || (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q]))) {
         q = i;
       }
     }
     p = q;
-  } while (p != leftmost);
+    if (p == leftmost) {
+      break;
+    }
+  }
 
   return hull;
 }

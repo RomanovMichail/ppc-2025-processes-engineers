@@ -2,8 +2,6 @@
 
 #include <mpi.h>
 
-#include <algorithm>
-#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -26,6 +24,7 @@ bool RomanovMProhodJarvisaMPI::PreProcessingImpl() {
 }
 
 namespace {
+
 void CreateMpiPointType(MPI_Datatype *p_type) {
   MPI_Type_contiguous(2, MPI_INT, p_type);
   MPI_Type_commit(p_type);
@@ -44,13 +43,15 @@ void InitCountsAndDispls(int rank, int size, int n, std::vector<int> &counts, st
     }
   }
 }
+
 }  // namespace
 
 std::vector<Point> RomanovMProhodJarvisaMPI::JarvisMarch(std::vector<Point> points) {
-  int n = static_cast<int>(points.size());
+  const int n = static_cast<int>(points.size());
   if (n < 3) {
     return points;
   }
+
   std::vector<Point> hull;
   int leftmost = 0;
   for (int i = 1; i < n; ++i) {
@@ -58,19 +59,25 @@ std::vector<Point> RomanovMProhodJarvisaMPI::JarvisMarch(std::vector<Point> poin
       leftmost = i;
     }
   }
+
   int p = leftmost;
-  int q;
-  do {
+  int q = 0;
+
+  while (true) {
     hull.push_back(points[p]);
     q = (p + 1) % n;
     for (int i = 0; i < n; ++i) {
-      int cross = CalcCross(points[p], points[i], points[q]);
+      const int64_t cross = CalcCross(points[p], points[i], points[q]);
       if (cross > 0 || (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q]))) {
         q = i;
       }
     }
     p = q;
-  } while (p != leftmost);
+    if (p == leftmost) {
+      break;
+    }
+  }
+
   return hull;
 }
 
@@ -82,7 +89,8 @@ std::vector<Point> RomanovMProhodJarvisaMPI::ComputeFinalHull(int rank, std::vec
 }
 
 bool RomanovMProhodJarvisaMPI::RunImpl() {
-  int rank, size;
+  int rank = 0;
+  int size = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -99,20 +107,24 @@ bool RomanovMProhodJarvisaMPI::RunImpl() {
     return true;
   }
 
-  MPI_Datatype p_type;
+  MPI_Datatype p_type = MPI_DATATYPE_NULL;
   CreateMpiPointType(&p_type);
 
-  std::vector<int> counts(size), displs(size);
+  std::vector<int> counts(size);
+  std::vector<int> displs(size);
   InitCountsAndDispls(rank, size, n, counts, displs);
 
-  int l_size = (rank < (n % size)) ? (n / size + 1) : (n / size);
-  std::vector<Point> l_points(l_size);
+  const int l_size = (rank < (n % size)) ? ((n / size) + 1) : (n / size);
+
+  std::vector<Point> l_points(static_cast<std::size_t>(l_size));
   MPI_Scatterv(rank == 0 ? GetInput().data() : nullptr, counts.data(), displs.data(), p_type, l_points.data(), l_size,
                p_type, 0, MPI_COMM_WORLD);
 
   std::vector<Point> l_hull = JarvisMarch(l_points);
-  int l_count = static_cast<int>(l_hull.size());
-  std::vector<int> r_counts(size), r_displs(size);
+  const int l_count = static_cast<int>(l_hull.size());
+
+  std::vector<int> r_counts(size);
+  std::vector<int> r_displs(size);
   MPI_Gather(&l_count, 1, MPI_INT, rank == 0 ? r_counts.data() : nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   int total = 0;
@@ -123,16 +135,18 @@ bool RomanovMProhodJarvisaMPI::RunImpl() {
     }
   }
 
-  std::vector<Point> a_hull_points(total);
+  std::vector<Point> a_hull_points(static_cast<std::size_t>(total));
   MPI_Gatherv(l_hull.data(), l_count, p_type, rank == 0 ? a_hull_points.data() : nullptr, r_counts.data(),
               r_displs.data(), p_type, 0, MPI_COMM_WORLD);
 
   std::vector<Point> f_hull = ComputeFinalHull(rank, a_hull_points);
   int f_size = static_cast<int>(f_hull.size());
   MPI_Bcast(&f_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
   if (rank != 0) {
-    f_hull.resize(f_size);
+    f_hull.resize(static_cast<std::size_t>(f_size));
   }
+
   MPI_Bcast(f_hull.data(), f_size, p_type, 0, MPI_COMM_WORLD);
 
   GetOutput() = std::move(f_hull);
