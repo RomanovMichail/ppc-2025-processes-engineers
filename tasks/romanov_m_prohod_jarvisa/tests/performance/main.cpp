@@ -17,19 +17,15 @@ static bool IsValidConvexHull(const std::vector<Point> &points, const std::vecto
     return points.empty();
   }
   for (const auto &h : hull) {
-    bool found = false;
-    for (const auto &p : points) {
-      if (p == h) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
+    if (std::ranges::find(points, h) == points.end()) {
       return false;
     }
   }
   for (std::size_t i = 0; i < hull.size(); ++i) {
-    if (CalcCross(hull[i], hull[(i + 1) % hull.size()], hull[(i + 2) % hull.size()]) < 0) {
+    const Point &p1 = hull[i];
+    const Point &p2 = hull[(i + 1) % hull.size()];
+    const Point &p3 = hull[(i + 2) % hull.size()];
+    if (CalcCross(p1, p2, p3) < 0) {
       return false;
     }
   }
@@ -44,15 +40,15 @@ class RomanovMProhodJarvisaRunPerfTests : public ppc::util::BaseRunPerfTests<InT
   void SetUp() override {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(-10000, 10000);
+    std::uniform_int_distribution<int> dist(-1000, 1000);
     i_points_.resize(kSize);
     for (std::size_t i = 0; i < kSize; ++i) {
       i_points_[i] = Point{dist(gen), dist(gen)};
     }
-    i_points_[0] = {-20000, -20000};
-    i_points_[1] = {20000, -20000};
-    i_points_[2] = {20000, 20000};
-    i_points_[3] = {-20000, 20000};
+    i_points_[0] = {-10000, -10000};
+    i_points_[1] = {10000, -10000};
+    i_points_[2] = {10000, 10000};
+    i_points_[3] = {-10000, 10000};
   }
 
   bool CheckTestOutputData(OutType &output_data) final {

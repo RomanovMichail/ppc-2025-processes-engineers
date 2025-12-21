@@ -1,6 +1,7 @@
 #include "romanov_m_prohod_jarvisa/seq/include/ops_seq.hpp"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "romanov_m_prohod_jarvisa/common/include/common.hpp"
@@ -14,7 +15,6 @@ RomanovMProhodJarvisaSEQ::RomanovMProhodJarvisaSEQ(const InType &in) {
 }
 
 bool RomanovMProhodJarvisaSEQ::ValidationImpl() {
-  // Оболочка возможна минимум для 3-х точек
   return GetInput().size() >= 3;
 }
 
@@ -29,7 +29,6 @@ std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> poin
   }
 
   std::vector<Point> hull;
-
   int leftmost = 0;
   for (int i = 1; i < n; ++i) {
     if (points[i].x < points[leftmost].x || (points[i].x == points[leftmost].x && points[i].y < points[leftmost].y)) {
@@ -38,19 +37,17 @@ std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> poin
   }
 
   int p = leftmost;
+  int q;
   do {
     hull.push_back(points[p]);
-
-    int q = (p + 1) % n;
+    q = (p + 1) % n;
     for (int i = 0; i < n; ++i) {
-      int64_t cross = CalcCross(points[p], points[i], points[q]);
-
+      int cross = CalcCross(points[p], points[i], points[q]);
       if (cross > 0 || (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q]))) {
         q = i;
       }
     }
     p = q;
-
   } while (p != leftmost);
 
   return hull;

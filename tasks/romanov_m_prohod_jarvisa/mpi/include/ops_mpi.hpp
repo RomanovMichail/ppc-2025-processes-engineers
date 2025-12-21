@@ -15,11 +15,15 @@ class RomanovMProhodJarvisaMPI : public BaseTask {
 
   explicit RomanovMProhodJarvisaMPI(const InType &in);
 
+  static std::vector<Point> JarvisMarch(std::vector<Point> points);
+
  private:
   bool ValidationImpl() override;
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  static std::vector<Point> ComputeFinalHull(int rank, std::vector<Point> &all_hull_points);
 };
 
 }  // namespace romanov_m_prohod_jarvisa
