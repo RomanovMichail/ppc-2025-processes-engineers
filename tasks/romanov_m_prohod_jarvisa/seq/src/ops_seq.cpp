@@ -1,5 +1,6 @@
 #include "romanov_m_prohod_jarvisa/seq/include/ops_seq.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -41,8 +42,10 @@ int SelectNextPoint(const std::vector<Point> &points, int p) {
     const int64_t cross = CalcCross(points[p], points[i], points[q]);
     if (cross > 0) {
       q = i;
-    } else if (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q])) {
-      q = i;
+    } else if (cross == 0) {
+      if (CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q])) {
+        q = i;
+      }
     }
   }
   return q;

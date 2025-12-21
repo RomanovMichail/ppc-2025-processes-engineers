@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "romanov_m_prohod_jarvisa/common/include/common.hpp"
@@ -44,8 +45,10 @@ int SelectNextPoint(const std::vector<Point> &points, int p) {
     const int64_t cross = CalcCross(points[p], points[i], points[q]);
     if (cross > 0) {
       q = i;
-    } else if (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q])) {
-      q = i;
+    } else if (cross == 0) {
+      if (CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q])) {
+        q = i;
+      }
     }
   }
   return q;
@@ -122,14 +125,14 @@ bool RomanovMProhodJarvisaMPI::RunImpl() {
     return true;
   }
 
-  MPI_Datatype p_type;
+  MPI_Datatype p_type = MPI_DATATYPE_NULL;
   CreateMpiPointType(&p_type);
 
   std::vector<int> counts(size);
   std::vector<int> displs(size);
   InitCountsAndDispls(rank, size, n, counts, displs);
 
-  const int l_size = (rank < (n % size)) ? (n / size + 1) : (n / size);
+  const int l_size = (rank < (n % size)) ? ((n / size) + 1) : (n / size);
   std::vector<Point> local_points(static_cast<std::size_t>(l_size));
 
   MPI_Scatterv(rank == 0 ? GetInput().data() : nullptr, counts.data(), displs.data(), p_type, local_points.data(),
