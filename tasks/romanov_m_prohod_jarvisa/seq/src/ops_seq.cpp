@@ -1,5 +1,6 @@
 #include "romanov_m_prohod_jarvisa/seq/include/ops_seq.hpp"
 
+#include <cstdint>
 #include <vector>
 
 #include "romanov_m_prohod_jarvisa/common/include/common.hpp"
@@ -20,34 +21,48 @@ bool RomanovMProhodJarvisaSEQ::PreProcessingImpl() {
   return true;
 }
 
-std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> points) {
+namespace {
+
+int FindLeftmostPoint(const std::vector<Point> &points) {
+  int idx = 0;
+  for (std::size_t i = 1; i < points.size(); ++i) {
+    if (points[i].x < points[idx].x || (points[i].x == points[idx].x && points[i].y < points[idx].y)) {
+      idx = static_cast<int>(i);
+    }
+  }
+  return idx;
+}
+
+int SelectNextPoint(const std::vector<Point> &points, int p) {
   const int n = static_cast<int>(points.size());
-  if (n < 3) {
+  int q = (p + 1) % n;
+
+  for (int i = 0; i < n; ++i) {
+    const int64_t cross = CalcCross(points[p], points[i], points[q]);
+    if (cross > 0) {
+      q = i;
+    } else if (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q])) {
+      q = i;
+    }
+  }
+  return q;
+}
+
+}  // namespace
+
+std::vector<Point> RomanovMProhodJarvisaSEQ::JarvisMarch(std::vector<Point> points) {
+  if (points.size() < 3) {
     return points;
   }
 
   std::vector<Point> hull;
-  int leftmost = 0;
-  for (int i = 1; i < n; ++i) {
-    if (points[i].x < points[leftmost].x || (points[i].x == points[leftmost].x && points[i].y < points[leftmost].y)) {
-      leftmost = i;
-    }
-  }
+  const int start = FindLeftmostPoint(points);
 
-  int p = leftmost;
-  int q = 0;
-
+  int p = start;
   while (true) {
     hull.push_back(points[p]);
-    q = (p + 1) % n;
-    for (int i = 0; i < n; ++i) {
-      const int64_t cross = CalcCross(points[p], points[i], points[q]);
-      if (cross > 0 || (cross == 0 && CalcDistSq(points[p], points[i]) > CalcDistSq(points[p], points[q]))) {
-        q = i;
-      }
-    }
-    p = q;
-    if (p == leftmost) {
+    p = SelectNextPoint(points, p);
+    if (p == start) {
       break;
     }
   }
